@@ -34,6 +34,7 @@ class InputDevice : public QObject
     Q_PROPERTY(bool mapToWorkspace READ isMapToWorkspace WRITE setMapToWorkspace NOTIFY mapToWorkspaceChanged)
     Q_PROPERTY(QString pressureCurve READ pressureCurve WRITE setPressureCurve NOTIFY pressureCurveChanged)
     Q_PROPERTY(bool pressureCurveIsDefault READ pressureCurveIsDefault NOTIFY pressureCurveChanged)
+    Q_PROPERTY(bool relative READ isRelative WRITE setRelative NOTIFY relativeChanged)
 
 public:
     InputDevice(const QString &dbusName, QObject *parent);
@@ -131,6 +132,13 @@ public:
     void setPressureCurve(const QString &curve);
     bool pressureCurveIsDefault() const;
 
+    bool isRelative() const
+    {
+        return m_relative.value();
+    }
+
+    void setRelative(bool relative);
+
 Q_SIGNALS:
     void needsSaveChanged();
 
@@ -141,6 +149,7 @@ Q_SIGNALS:
     void enabledChanged();
     void mapToWorkspaceChanged();
     void pressureCurveChanged();
+    void relativeChanged();
 
 private:
     template<typename T>
@@ -256,6 +265,7 @@ private:
                                              &OrgKdeKWinInputDeviceInterface::defaultOutputArea,
                                              &OrgKdeKWinInputDeviceInterface::supportsOutputArea,
                                              &InputDevice::outputAreaChanged);
+    Prop<bool> m_relative = Prop<bool>(this, "relative", nullptr, nullptr, &InputDevice::relativeChanged);
 
     Prop<bool> m_mapToWorkspace =
         Prop<bool>(this, "mapToWorkspace", &OrgKdeKWinInputDeviceInterface::defaultMapToWorkspace, nullptr, &InputDevice::mapToWorkspaceChanged);
