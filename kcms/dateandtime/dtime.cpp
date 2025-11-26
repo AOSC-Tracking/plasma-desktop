@@ -18,9 +18,9 @@
 #include <QGroupBox>
 #include <QPainter>
 #include <QPushButton>
-#include <QQmlEngine>
 #include <QTimeEdit>
 
+#include <KColorScheme>
 #include <KConfig>
 #include <KConfigGroup>
 #include <KMessageBox>
@@ -29,10 +29,8 @@
 #include <QDebug>
 #include <QGridLayout>
 #include <QHBoxLayout>
-#include <QQmlContext>
 #include <QVBoxLayout>
 
-#include <KLocalizedContext>
 #include <KSvg/Svg>
 
 #include "timedated_interface.h"
@@ -103,21 +101,27 @@ Dtime::Dtime(QWidget *parent, bool haveTimeDated)
 
     tabWidget->tabBar()->setExpanding(true);
 
-    auto engine = timezoneViewer->engine();
-    engine->rootContext()->setContextObject(new KLocalizedContext(engine));
-
-    timezoneViewer->rootContext()->setContextProperty("DTime", this);
-    timezoneViewer->setSource(QUrl("qrc:/kcm/kcm_clock/main.qml"));
-    timezoneViewer->resize(QSize(500, 600));
-    timezoneViewer->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    timezoneViewer->setClearColor(Qt::transparent);
-    timezoneViewer->setAttribute(Qt::WA_AlwaysStackOnTop);
+    // Timezone
+    connect(tzonelist, &K4TimeZoneWidget::itemSelectionChanged, this, &Dtime::configChanged);
+    tzonesearch->setTreeWidget(tzonelist);
 }
 
 void Dtime::currentZone()
 {
     QTimeZone localZone = QTimeZone::systemTimeZone();
-    setSelectedTimeZone(localZone.id());
+    const auto continentCity = localZone.id().split('/');
+    // Use the translation catalog of the digitalclock applet until  there is a standard API for city/continent names
+    const char *domain = "plasma_applet_org.kde.plasma.digitalclock.mo";
+    QString displayName = i18nd(domain, continentCity[0]);
+    if (continentCity.size() > 1) {
+        displayName += '/' + i18nd(domain, continentCity[1]);
+    }
+    const QString abbreviation = localZone.abbreviation(QDateTime::currentDateTime());
+    if (abbreviation.isEmpty()) {
+        m_local->setText(i18nc("%1 is name of time zone", "Current local time zone: %1", displayName));
+    } else {
+        m_local->setText(i18nc("%1 is name of time zone, %2 is its abbreviation", "Current local time zone: %1 (%2)", displayName, abbreviation));
+    }
 }
 
 void Dtime::findNTPutility()
@@ -218,22 +222,18 @@ void Dtime::load()
     // Timezone
     currentZone();
 
+    tzonelist->setSelected(currentTimeZone, true);
     Q_EMIT timeChanged(false);
 }
 
 QString Dtime::selectedTimeZone() const
 {
-    return m_selectedTimeZone;
-}
-
-void Dtime::setSelectedTimeZone(QString selectedTimeZone)
-{
-    if (m_selectedTimeZone == selectedTimeZone) {
-        return;
+    QStringList selectedZones(tzonelist->selection());
+    if (!selectedZones.isEmpty()) {
+        return selectedZones.first();
     }
 
-    m_selectedTimeZone = selectedTimeZone;
-    Q_EMIT selectedTimeZoneChanged(true);
+    return QString();
 }
 
 QStringList Dtime::ntpServers() const

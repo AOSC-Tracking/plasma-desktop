@@ -45,7 +45,6 @@ KclockModule::KclockModule(QObject *parent, const KPluginMetaData &metaData)
     dtime = new Dtime(widget(), m_haveTimedated);
     layout->addWidget(dtime);
     connect(dtime, &Dtime::timeChanged, this, &KCModule::setNeedsSave);
-    connect(dtime, &Dtime::selectedTimeZoneChanged, this, &KCModule::setNeedsSave);
 
     setButtons(Help | Apply);
 
@@ -173,7 +172,6 @@ void KclockModule::save()
 void KclockModule::load()
 {
     dtime->load();
-
     widget()->setDisabled(false);
 }
 

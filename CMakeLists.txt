@@ -235,6 +235,11 @@ if (BUILD_KCM_TOUCHPAD_X11)
     )
 endif()
 
+find_package(ICU COMPONENTS i18n uc)
+set_package_properties(ICU PROPERTIES
+    PURPOSE "Retrieving timezone info"
+    TYPE REQUIRED
+)
 
 set_package_properties(XCB PROPERTIES TYPE REQUIRED)
 add_feature_info("XCB-XKB" XCB_XKB_FOUND "Required for building kcm/keyboard")
