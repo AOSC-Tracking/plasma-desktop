@@ -103,14 +103,20 @@ Item {
                 }
             }
         }
+
         WallpaperFader {
             visible: config.type === "image"
             anchors.fill: parent
-            state: loginScreenRoot.uiVisible ? "on" : "off"
+            factor: loginScreenRoot.uiVisible ? 1 : 0
             source: wallpaper
+        }
+
+        GreeterFader {
+            state: loginScreenRoot.uiVisible ? "on" : "off"
             mainStack: mainStack
             footer: footer
             clock: clock
+            alwaysShowClock: true
         }
 
         DropShadow {
@@ -123,13 +129,6 @@ Item {
             samples: 15
             spread: 0.2
             color : Qt.rgba(0, 0, 0, 0.7)
-            opacity: loginScreenRoot.uiVisible ? 0 : 1
-            Behavior on opacity {
-                OpacityAnimator {
-                    duration: Kirigami.Units.veryLongDuration * 2
-                    easing.type: Easing.InOutQuad
-                }
-            }
         }
 
         Clock {

@@ -236,6 +236,11 @@ Item {
 
         WallpaperFader {
             anchors.fill: parent
+            factor: lockScreenRoot.uiVisible ? 1 : 0
+            source: wallpaper
+        }
+
+        GreeterFader {
             state: lockScreenRoot.uiVisible ? "on" : "off"
             mainStack: mainStack
             footer: footer
@@ -255,13 +260,6 @@ Item {
             samples: 15
             spread: 0.2
             color : Qt.rgba(0, 0, 0, 0.7)
-            opacity: lockScreenRoot.uiVisible ? 0 : 1
-            Behavior on opacity {
-                OpacityAnimator {
-                    duration: Kirigami.Units.veryLongDuration * 2
-                    easing.type: Easing.InOutQuad
-                }
-            }
         }
 
         Clock {
