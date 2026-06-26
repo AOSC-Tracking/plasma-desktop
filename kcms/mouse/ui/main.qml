@@ -61,10 +61,10 @@ KCMUtils.SimpleKCM {
         Kirigami.FormGroup {
             // Device
             Kirigami.FormEntry {
+                visible: !root.backend.isAnonymousInputDevice
                 contentItem: QQC2.ComboBox {
                     id: deviceSelector
                     Kirigami.FormData.label: i18ndc("kcmmouse", "@title:listbox select device", "Device:")
-                    visible: !root.backend.isAnonymousInputDevice
                     enabled: count > 1
                     Layout.fillWidth: true
                     model: root.backend.inputDevices
@@ -84,11 +84,11 @@ KCMUtils.SimpleKCM {
 
             // General
             Kirigami.FormEntry {
+                visible: !root.backend.isAnonymousInputDevice
                 contentItem: QQC2.CheckBox {
                     id: deviceEnabled
                     Kirigami.FormData.label: i18ndc("kcmmouse", "@title:group", "General:")
                     text: i18ndc("kcmmouse", "@option:check enable this mouse device", "Enable device")
-                    visible: !root.backend.isAnonymousInputDevice
                     enabled: root.device?.supportsDisableEvents ?? false
                     checked: root.device && (!root.device.supportsDisableEvents || root.device.enabled)
 
@@ -246,12 +246,12 @@ KCMUtils.SimpleKCM {
 
             Kirigami.FormEntry {
                 // Scroll Speed aka scroll Factor
+                visible: !root.backend.isAnonymousInputDevice
                 contentItem: GridLayout {
                     Kirigami.FormData.label: i18ndc("kcmmouse", "@label:slider and @label:spinbox", "Scrolling speed:")
                     Kirigami.FormData.buddyFor: scrollFactor
                     Layout.fillWidth: true
 
-                    visible: !root.backend.isAnonymousInputDevice
                     columns: 3
 
                     QQC2.Slider {
