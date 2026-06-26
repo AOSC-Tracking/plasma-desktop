@@ -9,7 +9,6 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.newstuff as NewStuff
 import org.kde.kcmutils as KCM
 
 KCM.GridViewKCM {
@@ -24,18 +23,6 @@ KCM.GridViewKCM {
     view.model: kcm.splashSortedModel
     //NOTE: pay attention to never break this binding
     view.currentIndex: kcm.sortModelPluginIndex(kcm.splashScreenSettings.theme)
-
-    actions: NewStuff.Action {
-        id: newStuffButton
-        text: i18nc("@action:button", "&Get New…")
-        configFile: "ksplash.knsrc"
-        viewMode: NewStuff.Page.ViewMode.Preview
-        onEntryEvent: function(entry, event) {
-            if (event === NewStuff.Entry.StatusChangedEvent) {
-                kcm.ghnsEntryChanged(entry);
-            }
-        }
-    }
 
     headerPaddingEnabled: false // Let the InlineMessage touch the edges
     header: Kirigami.InlineMessage {

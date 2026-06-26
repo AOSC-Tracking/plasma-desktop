@@ -9,7 +9,6 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import QtQml
 
-import org.kde.newstuff as NewStuff
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils
 import org.kde.plasma.plasmoid
@@ -147,12 +146,6 @@ SimpleKCM {
                             wallpaperComboBox.selectCurrentWallpaperPlugin();
                         }
                     }
-                }
-                NewStuff.Button {
-                    configFile: "wallpaperplugin.knsrc"
-                    text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button", "Get New Plugins…")
-                    visibleWhenDisabled: true // don't hide on disabled
-                    Layout.preferredHeight: wallpaperComboBox.height
                 }
             }
         }

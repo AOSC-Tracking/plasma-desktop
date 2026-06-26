@@ -11,7 +11,6 @@ import QtQuick.Layouts
 import org.kde.config
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCMUtils
-import org.kde.newstuff as NewStuff
 
 KCMUtils.ScrollViewKCM {
     id: root
@@ -25,16 +24,6 @@ KCMUtils.ScrollViewKCM {
             text: i18nc("@action:button in toolbar", "Configure KRunner…")
             Accessible.name: text // https://bugreports.qt.io/browse/QTBUG-130360
             onTriggered: kcm.showKRunnerKCM()
-        },
-        NewStuff.Action {
-            text: i18nc("@action:button in toolbar", "Get New Plugins…")
-            visible: KAuthorized.authorize(KAuthorized.GHNS)
-            configFile: "krunner.knsrc"
-            onEntryEvent: (entry, event) => {
-                if (event === NewStuff.Engine.StatusChangedEvent) {
-                    kcm.reloadPlugins()
-                }
-            }
         }
     ]
 
