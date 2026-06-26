@@ -92,7 +92,7 @@ ItemAbstractDelegate {
             active: root.isNewlyInstalled ?? false
 
             sourceComponent: Kirigami.Badge {
-                text: root.hasChildren ? "" : Accessible.name
+                text: ""
                 type: Kirigami.Badge.Type.Positive
                 Accessible.name: i18nc("Newly-installed app, badge, keep short", "New!")
                 Accessible.description: root.hasChildren ? i18nc("@info:whatsthis Accessible description for badge", "There is a newly-installed application in this category")
