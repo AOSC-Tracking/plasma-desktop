@@ -92,7 +92,7 @@ ItemAbstractDelegate {
             active: item.isNewlyInstalled ?? false
 
             sourceComponent: Kirigami.Badge {
-                text: item.hasChildren ? "" : Accessible.name
+                text: ""
                 type: Kirigami.Badge.Type.Positive
                 Accessible.name: i18nc("Newly-installed app, badge, keep short", "New!") // qmllint disable unqualified
                 Accessible.description: item.hasChildren ? i18nc("@info:whatsthis Accessible description for badge", "There is a newly-installed application in this category") // qmllint disable unqualified
