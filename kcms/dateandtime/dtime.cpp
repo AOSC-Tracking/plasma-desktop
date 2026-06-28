@@ -18,35 +18,54 @@
 #include <QGroupBox>
 #include <QPainter>
 #include <QPushButton>
-#include <QQmlEngine>
 #include <QTimeEdit>
 
+#include <KColorScheme>
 #include <KConfig>
 #include <KConfigGroup>
 #include <KMessageBox>
 #include <KProcess>
-#include <KSharedConfig>
 #include <KTreeWidgetSearchLine>
 #include <QDebug>
 #include <QGridLayout>
 #include <QHBoxLayout>
-#include <QQmlContext>
 #include <QVBoxLayout>
 
-#include <KLocalizedString>
-#include <KLocalizedContext>
 #include <KSvg/Svg>
 
 #include "timedated_interface.h"
 
+#include "helper.h"
+
 using namespace Qt::StringLiterals;
 
-Dtime::Dtime(QWidget *parent)
+Dtime::Dtime(QWidget *parent, bool haveTimeDated)
     : QWidget(parent)
+    , m_haveTimedated(haveTimeDated)
 {
     setupUi(this);
 
     connect(setDateTimeAuto, &QCheckBox::toggled, this, &Dtime::configChanged);
+
+    timeServerList->setEditable(false);
+    connect(timeServerList, &QComboBox::activated, this, &Dtime::configChanged);
+    connect(timeServerList, &QComboBox::editTextChanged, this, &Dtime::configChanged);
+    connect(setDateTimeAuto, &QCheckBox::toggled, timeServerList, &QComboBox::setEnabled);
+    timeServerList->setEnabled(false);
+    timeServerList->setEditable(true);
+
+    if (!haveTimeDated) {
+        findNTPutility();
+        if (ntpUtility.isEmpty()) {
+            QString toolTip = i18n(
+                "No NTP utility has been found. "
+                "Install 'ntpdate' or 'rdate' command to enable automatic "
+                "updating of date and time.");
+            setDateTimeAuto->setEnabled(false);
+            setDateTimeAuto->setToolTip(toolTip);
+            timeServerList->setToolTip(toolTip);
+        }
+    }
 
     QVBoxLayout *v2 = new QVBoxLayout(timeBox);
     v2->setContentsMargins(0, 0, 0, 0);
@@ -82,21 +101,52 @@ Dtime::Dtime(QWidget *parent)
 
     tabWidget->tabBar()->setExpanding(true);
 
-    auto engine = timezoneViewer->engine();
-    engine->rootContext()->setContextObject(new KLocalizedContext(engine));
-
-    timezoneViewer->rootContext()->setContextProperty("DTime", this);
-    timezoneViewer->setSource(QUrl("qrc:/kcm/kcm_clock/main.qml"));
-    timezoneViewer->resize(QSize(500, 600));
-    timezoneViewer->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    timezoneViewer->setClearColor(Qt::transparent);
-    timezoneViewer->setAttribute(Qt::WA_AlwaysStackOnTop);
+    // Timezone
+    connect(tzonelist, &K4TimeZoneWidget::itemSelectionChanged, this, &Dtime::configChanged);
+    tzonesearch->setTreeWidget(tzonelist);
 }
 
 void Dtime::currentZone()
 {
     QTimeZone localZone = QTimeZone::systemTimeZone();
-    setSelectedTimeZone(localZone.id());
+    const auto continentCity = localZone.id().split('/');
+    // Use the translation catalog of the digitalclock applet until  there is a standard API for city/continent names
+    const char *domain = "plasma_applet_org.kde.plasma.digitalclock.mo";
+    QString displayName = i18nd(domain, continentCity[0]);
+    if (continentCity.size() > 1) {
+        displayName += '/' + i18nd(domain, continentCity[1]);
+    }
+    const QString abbreviation = localZone.abbreviation(QDateTime::currentDateTime());
+    if (abbreviation.isEmpty()) {
+        m_local->setText(i18nc("%1 is name of time zone", "Current local time zone: %1", displayName));
+    } else {
+        m_local->setText(i18nc("%1 is name of time zone, %2 is its abbreviation", "Current local time zone: %1 (%2)", displayName, abbreviation));
+    }
+}
+
+void Dtime::findNTPutility()
+{
+    QByteArray envpath = qgetenv("PATH");
+    if (!envpath.isEmpty() && envpath.startsWith(':')) {
+        envpath.remove(0, 1);
+    }
+
+    QStringList path = {u"/sbin"_s, u"/usr/sbin"_s};
+    if (!envpath.isEmpty()) {
+        path += QFile::decodeName(envpath).split(QLatin1Char(':'));
+    } else {
+        path += {u"/bin"_s, u"/usr/bin"_s};
+    }
+
+    for (const QString &possible_ntputility : {u"ntpdate"_s, u"rdate"_s}) {
+        ntpUtility = QStandardPaths::findExecutable(possible_ntputility, path);
+        if (!ntpUtility.isEmpty()) {
+            qDebug() << "ntpUtility = " << ntpUtility;
+            return;
+        }
+    }
+
+    qDebug() << "ntpUtility not found!";
 }
 
 void Dtime::set_time()
@@ -127,13 +177,37 @@ void Dtime::load()
 {
     QString currentTimeZone;
 
-    OrgFreedesktopTimedate1Interface timeDatedIface(QStringLiteral("org.freedesktop.timedate1"),
-                                                    QStringLiteral("/org/freedesktop/timedate1"),
-                                                    QDBusConnection::systemBus());
-    setDateTimeAuto->setEnabled(timeDatedIface.canNTP());
-    setDateTimeAuto->setChecked(timeDatedIface.nTP());
+    if (m_haveTimedated) {
+        OrgFreedesktopTimedate1Interface timeDatedIface(QStringLiteral("org.freedesktop.timedate1"),
+                                                        QStringLiteral("/org/freedesktop/timedate1"),
+                                                        QDBusConnection::systemBus());
+        // the server list is not relevant for timesyncd, it fetches it from the network
+        timeServerList->setVisible(false);
+        timeServerLabel->setVisible(false);
+        setDateTimeAuto->setEnabled(timeDatedIface.canNTP());
+        setDateTimeAuto->setChecked(timeDatedIface.nTP());
 
-    currentTimeZone = timeDatedIface.timezone();
+        currentTimeZone = timeDatedIface.timezone();
+    } else {
+        // The config is actually written to the system config, but the user does not have any local config,
+        // since there is nothing writing it.
+        KConfig _config(QStringLiteral("kcmclockrc"), KConfig::NoGlobals);
+        KConfigGroup config(&_config, QStringLiteral("NTP"));
+        timeServerList->clear();
+        timeServerList->addItems(config
+                                     .readEntry("servers", i18n("Public Time Server (pool.ntp.org),\
+        asia.pool.ntp.org,\
+        europe.pool.ntp.org,\
+        north-america.pool.ntp.org,\
+        oceania.pool.ntp.org"))
+                                     .split(',', Qt::SkipEmptyParts));
+        setDateTimeAuto->setChecked(config.readEntry("enabled", false));
+
+        if (ntpUtility.isEmpty()) {
+            timeServerList->setEnabled(false);
+        }
+        currentTimeZone = QTimeZone::systemTimeZoneId();
+    }
 
     // Reset to the current date and time
     time = QTime::currentTime();
@@ -148,22 +222,35 @@ void Dtime::load()
     // Timezone
     currentZone();
 
+    tzonelist->setSelected(currentTimeZone, true);
     Q_EMIT timeChanged(false);
 }
 
 QString Dtime::selectedTimeZone() const
 {
-    return m_selectedTimeZone;
-}
-
-void Dtime::setSelectedTimeZone(QString selectedTimeZone)
-{
-    if (m_selectedTimeZone == selectedTimeZone) {
-        return;
+    QStringList selectedZones(tzonelist->selection());
+    if (!selectedZones.isEmpty()) {
+        return selectedZones.first();
     }
 
-    m_selectedTimeZone = selectedTimeZone;
-    Q_EMIT selectedTimeZoneChanged(true);
+    return QString();
+}
+
+QStringList Dtime::ntpServers() const
+{
+    // Save the order, but don't duplicate!
+    QStringList list;
+    if (timeServerList->count() != 0)
+        list.append(timeServerList->currentText());
+    for (int i = 0; i < timeServerList->count(); i++) {
+        QString text = timeServerList->itemText(i);
+        if (!list.contains(text))
+            list.append(text);
+        // Limit so errors can go away and not stored forever
+        if (list.count() == 10)
+            break;
+    }
+    return list;
 }
 
 bool Dtime::ntpEnabled() const
@@ -174,6 +261,19 @@ bool Dtime::ntpEnabled() const
 QDateTime Dtime::userTime() const
 {
     return QDateTime(date, QTime(timeEdit->time()));
+}
+
+void Dtime::processHelperErrors(int code)
+{
+    if (code & ClockHelper::NTPError) {
+        KMessageBox::error(this, i18n("Unable to contact time server: %1.", timeServer));
+        setDateTimeAuto->setChecked(false);
+    }
+    if (code & ClockHelper::DateError) {
+        KMessageBox::error(this, i18n("Can not set date."));
+    }
+    if (code & ClockHelper::TimezoneError)
+        KMessageBox::error(this, i18n("Error setting new time zone."), i18n("Time zone Error"));
 }
 
 void Dtime::timeout()

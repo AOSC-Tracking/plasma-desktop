@@ -21,8 +21,11 @@ public:
     void load() override;
 
 private:
+    bool kauthSave();
     bool timedatedSave();
 
     QTabWidget *tab;
     Dtime *dtime;
+
+    bool m_haveTimedated = false;
 };
