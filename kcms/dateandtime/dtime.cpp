@@ -93,12 +93,6 @@ Dtime::Dtime(QWidget *parent)
     timezoneViewer->setAttribute(Qt::WA_AlwaysStackOnTop);
 }
 
-void Dtime::currentZone()
-{
-    QTimeZone localZone = QTimeZone::systemTimeZone();
-    setSelectedTimeZone(localZone.id());
-}
-
 void Dtime::set_time()
 {
     if (ontimeout)
@@ -145,8 +139,10 @@ void Dtime::load()
 
     timeout();
 
-    // Timezone
-    currentZone();
+    if (m_selectedTimeZone != currentTimeZone) {
+        m_selectedTimeZone = currentTimeZone;
+        Q_EMIT selectedTimeZoneChanged(true);
+    }
 
     Q_EMIT timeChanged(false);
 }
