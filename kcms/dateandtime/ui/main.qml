@@ -6,9 +6,8 @@
 
 import QtQuick
 
-import org.kde.plasma.workspace.timezoneselector as TimeZone
+ListTimezoneSelector {
 
-TimeZone.TimezoneSelector {
     selectedTimeZone: DTime.selectedTimeZone
 
     Connections {
