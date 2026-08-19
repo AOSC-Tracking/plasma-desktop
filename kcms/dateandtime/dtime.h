@@ -53,7 +53,6 @@ private Q_SLOTS:
     void changeDate(const QDate &);
 
 private:
-    void currentZone();
     void findNTPutility();
     QString ntpUtility;
 
