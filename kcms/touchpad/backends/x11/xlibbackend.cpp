@@ -78,6 +78,8 @@ XlibBackend::XlibBackend(QObject *parent)
     m_device.reset(findTouchpad());
     if (!m_device) {
         m_errorString = i18n("No touchpad found");
+    } else {
+        connect(m_device.get(), &LibinputTouchpad::needsSaveChanged, this, &TouchpadBackend::needsSaveChanged);
     }
 }
 
@@ -200,6 +202,7 @@ void XlibBackend::devicePlugged(int /*device*/)
     if (!m_device) {
         m_device.reset(findTouchpad());
         if (m_device) {
+            connect(m_device.get(), &LibinputTouchpad::needsSaveChanged, this, &TouchpadBackend::needsSaveChanged);
             qWarning() << "Touchpad reset";
             // We get called by m_notifications, need to use deleteLater
             m_notifications.release()->deleteLater();
