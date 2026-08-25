@@ -305,12 +305,12 @@ KCMUtils.SimpleKCM {
         Kirigami.FormGroup {
             // Scroll Speed aka scroll Factor
             Kirigami.FormEntry {
+                visible: root.device?.supportsScrollFactor ?? false
                 contentItem: GridLayout {
                     Kirigami.FormData.label: i18ndc("kcm_touchpad", "@label:slider", "Scrolling speed:")
                     Kirigami.FormData.buddyFor: scrollFactor
                     Layout.fillWidth: true
 
-                    visible: root.device?.supportsScrollFactor ?? false
                     columns: 3
 
                     QQC2.Slider {
