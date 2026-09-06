@@ -70,8 +70,6 @@ KCM.SimpleKCM {
             KSvg.FrameSvgItem {
                 id: previewFrame
                 anchors.centerIn: parent
-                imagePath: Plasmoid.formFactor === PlasmaCore.Types.Vertical || Plasmoid.formFactor === PlasmaCore.Types.Horizontal
-                        ? "widgets/panel-background" : "widgets/background"
                 width: Kirigami.Units.iconSizes.large + fixedMargins.left + fixedMargins.right
                 height: Kirigami.Units.iconSizes.large + fixedMargins.top + fixedMargins.bottom
 
