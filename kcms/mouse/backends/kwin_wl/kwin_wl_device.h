@@ -212,21 +212,6 @@ public:
         m_scrollOnButtonDown.set(set);
     }
 
-    bool scrollButtonLockEnabledByDefault() const override
-    {
-        return m_scrollButtonLockEnabledByDefault.val;
-    }
-
-    bool isScrollButtonLock() const override
-    {
-        return m_scrollButtonLock.val;
-    }
-
-    void setScrollButtonLock(bool set) override
-    {
-        m_scrollButtonLock.set(set);
-    }
-
 private:
     template<typename T>
     struct Prop {
@@ -329,8 +314,6 @@ private:
     Prop<bool> m_supportsScrollOnButtonDown{this, u"supportsScrollOnButtonDown"_s};
     Prop<bool> m_scrollOnButtonDownEnabledByDefault{this, u"scrollOnButtonDownEnabledByDefault"_s};
     Prop<bool> m_scrollOnButtonDown{this, u"scrollOnButtonDown"_s, &KWinWaylandDevice::scrollOnButtonDownChanged};
-    Prop<bool> m_scrollButtonLockEnabledByDefault{this, u"scrollButtonLockEnabledByDefault"_s};
-    Prop<bool> m_scrollButtonLock{this, u"scrollButtonLock"_s, &KWinWaylandDevice::scrollButtonLockChanged};
 
     QString m_dbusName;
 };

@@ -37,6 +37,9 @@ KCMUtils.SimpleKCM {
         text: i18ndc("kcmmouse", "@action:button", "Configure Extra Buttons…")
 
         visible: {
+            if (root.backend.isAnonymousInputDevice) {
+                return false;
+            }
             return root.backend.buttonMappingCount > 0
                 || root.backend.inputDevices.some(root.supportsExtraButtons);
         }
@@ -58,6 +61,7 @@ KCMUtils.SimpleKCM {
         Kirigami.FormGroup {
             // Device
             Kirigami.FormEntry {
+                visible: !root.backend.isAnonymousInputDevice
                 enabled: deviceSelector.count > 1
                 contentItem: QQC2.ComboBox {
                     id: deviceSelector
@@ -80,6 +84,7 @@ KCMUtils.SimpleKCM {
 
             // General
             Kirigami.FormEntry {
+                visible: !root.backend.isAnonymousInputDevice
                 enabled: root.device?.supportsDisableEvents ?? false
                 contentItem: QQC2.CheckBox {
                     id: deviceEnabled
@@ -240,32 +245,14 @@ KCMUtils.SimpleKCM {
             Kirigami.FormSeparator {}
 
             Kirigami.FormEntry {
+                visible: !root.backend.isAnonymousInputDevice
                 // Scroll Speed aka scroll Factor
-                id: scrollProfile
-                readonly property list<real> values: [
-                    0.1,
-                    0.3,
-                    0.5,
-                    0.75,
-                    1, // default
-                    1.5,
-                    2,
-                    3,
-                    4,
-                    5,
-                    7,
-                    9,
-                    12,
-                    15,
-                    20,
-                ]
-
                 contentItem: GridLayout {
                     Kirigami.FormData.label: i18ndc("kcmmouse", "@label:slider and @label:spinbox", "Scrolling speed:")
                     Kirigami.FormData.buddyFor: scrollFactor
                     Layout.fillWidth: true
 
-                    columns: 4
+                    columns: 3
 
                     QQC2.Slider {
                         id: scrollFactor
@@ -278,50 +265,36 @@ KCMUtils.SimpleKCM {
                         Kirigami.StyleHints.tickMarkStepSize: 1
                         enabled: root.device !== null
 
+                        readonly property list<real> values: [
+                            0.1,
+                            0.3,
+                            0.5,
+                            0.75,
+                            1, // default
+                            1.5,
+                            2,
+                            3,
+                            4,
+                            5,
+                            7,
+                            9,
+                            12,
+                            15,
+                            20,
+                        ]
+
                         function indexOf(val: real): int {
-                            const index = scrollProfile.values.indexOf(val)
-                            return index === -1 ? scrollProfile.values.indexOf(1) : index
+                            const index = values.indexOf(val)
+                            return index === -1 ? values.indexOf(1) : index
                         }
                         value: indexOf(root.device?.scrollFactor ?? 1)
 
                         onMoved: {
                             if (root.device) {
-                                root.device.scrollFactor = scrollProfile.values[value]
+                                root.device.scrollFactor = values[value]
                             }
                         }
                     }
-
-                    QQC2.SpinBox {
-                        id: scrollFactorSpinBox
-
-                        Layout.minimumWidth: Kirigami.Units.gridUnit * 4
-
-                        from: 0
-                        to: 14
-                        stepSize: 1
-
-                        function indexOf(val: real): int {
-                            const index = scrollProfile.values.indexOf(val)
-                            return index === -1 ? scrollProfile.values.indexOf(1) : index
-                        }
-                        value: indexOf(root.device?.scrollFactor ?? 1)
-
-                        onValueChanged: {
-                            if (root.device) {
-                                root.device.scrollFactor = scrollProfile.values[value]
-                            }
-                        }
-
-
-                        textFromValue: function(val, locale) {
-                            return Number(val + 1).toLocaleString(locale, "d", 0)
-                        }
-
-                        valueFromText: function(text, locale) {
-                            return Number.fromLocaleString(locale, text) - 1
-                        }
-                    }
-
 
                     //row 2
                     QQC2.Label {
@@ -359,8 +332,8 @@ KCMUtils.SimpleKCM {
 
             Kirigami.FormEntry {
                 contentItem: QQC2.CheckBox {
-                    id: scrollButton
-                    text: i18ndc("kcmmouse", "@option:check", "Scroll when moving the pointer")
+                    id: scrollOnButtonDown
+                    text: i18ndc("kcmmouse", "@option:check", "Hold down middle button and move mouse to scroll")
                     enabled: root.device?.supportsScrollOnButtonDown ?? false
                     checked: enabled && (root.device?.scrollOnButtonDown ?? false)
 
@@ -370,55 +343,9 @@ KCMUtils.SimpleKCM {
                         }
                     }
                 }
-            }
-
-            QQC2.ButtonGroup { id: autoScrollRadioGroup }
-
-            Kirigami.FormEntry {
-                contentItem: QQC2.RadioButton {
-                    id: scrollOnButtonDown
-                    text: i18ndc("kcmmouse", "@option:radio", "while pressing the middle button")
-                    enabled: scrollButton.checked
-                    checked: !(root.device?.scrollButtonLock ?? false)
-
-                    leftPadding: mirrored ? scrollOnButtonDown.padding : (scrollButton.indicator.width + scrollButton.spacing)
-                    rightPadding: mirrored ? (scrollButton.indicator.width + scrollButton.spacing) : scrollOnButtonDown.padding
-
-                    QQC2.ButtonGroup.group: autoScrollRadioGroup
-
-                    onToggled: {
-                        if (root.device) {
-                            root.device.scrollButtonLock = false
-                        }
-                    }
-                }
 
                 trailingItems: Kirigami.ContextualHelpButton {
                     toolTipText: i18ndc("kcmmouse", "@info:whatsthis ContextualHelpButton tooltip", "This will interfere with applications that use middle-button drag, such as some image editors, document viewers, or video games. It may be used on any device, but is intended primarily as a substitute for scroll wheels on devices that do not have any.")
-                }
-            }
-
-            Kirigami.FormEntry {
-                contentItem: QQC2.RadioButton {
-                    id: scrollButtonLock
-                    text: i18ndc("kcmmouse", "@option:radio", "after clicking the middle button")
-                    enabled: scrollButton.checked
-                    checked: root.device?.scrollButtonLock ?? false
-
-                    leftPadding: mirrored ? scrollButtonLock.padding : (scrollButton.indicator.width + scrollButton.spacing)
-                    rightPadding: mirrored ? (scrollButton.indicator.width + scrollButton.spacing) : scrollButtonLock.padding
-
-                    QQC2.ButtonGroup.group: autoScrollRadioGroup
-
-                    onToggled: {
-                        if (root.device) {
-                            root.device.scrollButtonLock = true
-                        }
-                    }
-                }
-
-                trailingItems: Kirigami.ContextualHelpButton {
-                    toolTipText: i18ndc("kcmmouse", "@info:whatsthis ContextualHelpButton tooltip", "This will interfere with middle-clicks in general; middle-click twice when you want the application to receive a single middle-click. This includes middle-click dragging.")
                 }
             }
         }

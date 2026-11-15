@@ -11,7 +11,10 @@
 MouseModuleData::MouseModuleData(QObject *parent)
     : KCModuleData(parent)
 {
-    m_backend = std::make_unique<InputBackend>();
+    m_backend = InputBackend::create();
+    if (!m_backend) {
+        return;
+    }
     connect(m_backend.get(), &InputBackend::inputDevicesChanged, this, &MouseModuleData::updateRelevance);
     updateRelevance();
 }
