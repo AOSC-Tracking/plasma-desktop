@@ -132,6 +132,20 @@ Kirigami.Form {
         }
 
         Kirigami.FormEntry {
+            visible: objectModel.visible && kcm.isPlatformX11
+            contentItem: QQC2.CheckBox {
+                text: i18nc("@option:check", "Enable focus tracking")
+                checked: kcm.zoomMagnifierSettings.zoomEnableFocusTracking
+                onCheckedChanged: kcm.zoomMagnifierSettings.zoomEnableFocusTracking = checked
+
+                KCM.SettingStateBinding {
+                    configObject: kcm.zoomMagnifierSettings
+                    settingName: "ZoomEnableFocusTracking"
+                }
+            }
+        }
+
+        Kirigami.FormEntry {
             visible: objectModel.visible
             contentItem: QQC2.CheckBox {
                 text: i18nc("@option:check", "Enable text caret tracking")
@@ -304,7 +318,7 @@ Kirigami.Form {
             subtitle: i18nc("@label Hint for scroll gestures", "Scroll while modifier keys are pressed to zoom")
             contentItem: KQuickControls.KeySequenceItem {
                 id: zoomPointerAxisGestureModifiersBox
-                enabled: kcm.zoomMagnifierSettings.zoom || kcm.zoomMagnifierSettings.magnifier
+                enabled: !kcm.isPlatformX11 && (kcm.zoomMagnifierSettings.zoom || kcm.zoomMagnifierSettings.magnifier)
                 keySequence: kcm.zoomMagnifierSettings.zoomPointerAxisGestureModifiers
                 onKeySequenceModified: kcm.zoomMagnifierSettings.zoomPointerAxisGestureModifiers = keySequence
                 patterns: KQuickControls.ShortcutPattern.Modifier
@@ -323,6 +337,10 @@ Kirigami.Form {
                     configObject: kcm.zoomMagnifierSettings
                     settingName: "ZoomPointerAxisGestureModifiers"
                 }
+            }
+            trailingItems: Kirigami.ContextualHelpButton {
+                visible: kcm.isPlatformX11
+                toolTipText: i18nc("@info:tooltip, indicates feature unavailable on X11", "Zoom scroll gestures are only available on Wayland.")
             }
         }
         Kirigami.FormSeparator {}
