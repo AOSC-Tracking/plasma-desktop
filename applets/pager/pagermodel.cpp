@@ -13,6 +13,7 @@
 #include <virtualdesktopinfo.h>
 #include <waylandtasksmodel.h>
 #include <windowtasksmodel.h>
+#include <xwindowtasksmodel.h>
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -23,6 +24,8 @@
 #include <QUuid>
 
 #include <KWindowSystem>
+
+#include <config-X11.h>
 
 #include <PlasmaActivities/Controller>
 
@@ -376,7 +379,11 @@ int PagerModel::layoutRows() const
 QSize PagerModel::pagerItemSize() const
 {
     if (d->showOnlyCurrentScreen && d->screenGeometry.isValid()) {
+#if HAVE_X11
+        const double devicePixelRatio = KWindowSystem::isPlatformWayland() ? 1.0 : qGuiApp->devicePixelRatio();
+#else
         constexpr int devicePixelRatio = 1;
+#endif
         return d->screenGeometry.size() * devicePixelRatio;
     }
 
@@ -481,6 +488,26 @@ void PagerModel::moveWindow(const QModelIndex &index,
             }
         }
     }
+#if HAVE_X11
+    if (KWindowSystem::isPlatformX11() && !index.data(TaskManager::AbstractTasksModel::IsFullScreen).toBool()
+        && (targetItemId == sourceItemId || isOnAllDesktops)) {
+        const auto winIds = index.data(TaskManager::AbstractTasksModel::WinIdList).toList();
+        if (winIds.isEmpty()) {
+            return;
+        }
+        QPointF dest(x / widthScaleFactor, y / heightScaleFactor);
+
+        // Don't move windows to negative positions.
+        dest = QPointF(qMax(dest.x(), qreal(0.0)), qMax(dest.y(), qreal(0.0)));
+
+        // Use _NET_MOVERESIZE_WINDOW rather than plain move, so that the WM knows this is a pager request.
+        auto x11App = qGuiApp->nativeInterface<QNativeInterface::QX11Application>();
+        NETRootInfo info(x11App->connection(), NET::Properties());
+        const int flags = (0x20 << 12) | (0x03 << 8) | 1; // From tool, x/y, northwest gravity.
+        const QPoint &d = dest.toPoint();
+        info.moveResizeWindowRequest(winIds[0].toUInt(), flags, d.x(), d.y(), 0, 0);
+    }
+#endif
 }
 
 void PagerModel::changePage(int page)
@@ -534,7 +561,9 @@ void PagerModel::drop(QMimeData *mimeData, int modifiers, const QVariant &itemId
 
     bool ok = false;
     QList<QModelIndex> indices;
-    if (KWindowSystem::isPlatformWayland()) {
+    if (KWindowSystem::isPlatformX11()) {
+        indices = findWindows(TaskManager::XWindowTasksModel::winIdsFromMimeData(mimeData, &ok));
+    } else if (KWindowSystem::isPlatformWayland()) {
         indices = findWindows(TaskManager::WaylandTasksModel::winIdsFromMimeData(mimeData, &ok));
     }
     if (!ok) {
@@ -601,7 +630,11 @@ void PagerModel::componentComplete()
 
 void PagerModel::computePagerItemSize()
 {
+#if HAVE_X11
+    const double devicePixelRatio = KWindowSystem::isPlatformWayland() ? 1.0 : qGuiApp->devicePixelRatio();
+#else
     constexpr int devicePixelRatio = 1;
+#endif
     QRect wholeScreen;
     for (const auto screens = qGuiApp->screens(); auto screen : screens) {
         const QRect geometry = screen->geometry();
