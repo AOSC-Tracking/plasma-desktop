@@ -17,7 +17,7 @@
 
 // for text handling
 #include "keyboard_config.h"
-#include "layoutunit.h"
+#include "x11_helper.h"
 #include "xkb_rules.h"
 
 QIcon Flags::getIcon(const QString &layout)

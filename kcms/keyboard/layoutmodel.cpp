@@ -8,7 +8,7 @@
 
 #include "debug.h"
 #include "keyboardsettings.h"
-#include "layoutunit.h"
+#include "x11_helper.h"
 #include "xkb_rules.h"
 
 LayoutModel::LayoutModel() noexcept

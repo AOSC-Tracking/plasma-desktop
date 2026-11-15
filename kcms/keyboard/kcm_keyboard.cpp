@@ -20,11 +20,11 @@
 #include "keyboardmiscsettings.h"
 #include "keyboardsettings.h"
 #include "keyboardsettingsdata.h"
-#include "layoutunit.h"
 #include "shortcuthelper.h"
 #include "tastenbrett.h"
 #include "userlayoutmodel.h"
 #include "workspace_options.h"
+#include "x11_helper.h"
 #include "xkboptionsmodel.h"
 
 #include "debug.h"
@@ -45,6 +45,11 @@ KCMKeyboard::KCMKeyboard(QObject *parent, const KPluginMetaData &data)
 
     connect(m_data->keyboardSettings(), &KeyboardSettings::configureLayoutsChanged, this, [this]() -> void {
         if (m_data->keyboardSettings()->configureLayouts()) {
+            const QList<LayoutUnit> layouts = X11Helper::getLayoutsList();
+            for (const auto &layoutUnit : layouts) {
+                m_config->layouts().append(layoutUnit);
+            }
+
             m_userLayoutModel->reset();
         } else {
             m_userLayoutModel->clear();
@@ -53,6 +58,7 @@ KCMKeyboard::KCMKeyboard(QObject *parent, const KPluginMetaData &data)
 
     connect(m_data->keyboardSettings(), &KeyboardSettings::resetOldXkbOptionsChanged, this, [this]() -> void {
         if (m_data->keyboardSettings()->resetOldXkbOptions()) {
+            m_xkbOptionsModel->populateWithCurrentXkbOptions();
             m_data->keyboardSettings()->setXkbOptions(m_xkbOptionsModel->xkbOptions());
         }
     });
@@ -106,8 +112,7 @@ XkbOptionsModel *KCMKeyboard::xkbOptionsModel() const
 
 int KCMKeyboard::maxGroupCount() const
 {
-    // more information about the limit https://bugs.freedesktop.org/show_bug.cgi?id=19501
-    return 4;
+    return X11Helper::MAX_GROUP_COUNT;
 }
 
 bool KCMKeyboard::hasAccentSupport()
