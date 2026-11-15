@@ -6,20 +6,32 @@
 
 #include "kcm.h"
 
-#include "kwinwaylandbackend.h"
-#include "kwinwaylandtouchpad.h"
 #include "logging.h"
+#include "touchpadbackend.h"
 #include "touchpadmoduledata.h"
+#include <config-build-options.h>
 
 #include <KLocalizedContext>
 #include <KLocalizedString>
 #include <KPluginFactory>
+#include <KWindowSystem>
 
 #include <qqml.h>
 
 #include <algorithm>
 
 K_PLUGIN_FACTORY_WITH_JSON(KCMTouchpadFactory, "kcm_touchpad.json", registerPlugin<KCMTouchpad>(); registerPlugin<TouchpadModuleData>();)
+
+extern "C" {
+Q_DECL_EXPORT void kcminit()
+{
+#if BUILD_KCM_TOUCHPAD_X11
+    if (KWindowSystem::isPlatformX11()) {
+        KCMTouchpad::kcmInit();
+    }
+#endif
+}
+}
 
 Message::Message() = default;
 
@@ -45,13 +57,13 @@ KCMTouchpad::KCMTouchpad(QObject *parent, const KPluginMetaData &data)
     : KQuickConfigModule(parent, data)
 {
     const auto uri = "org.kde.plasma.private.kcm_touchpad";
-    qmlRegisterUncreatableType<KWinWaylandTouchpad>(uri, 1, 0, "InputDevice", QString());
+    qmlRegisterUncreatableType<LibinputCommon>(uri, 1, 0, "InputDevice", QString());
     qmlRegisterUncreatableType<Message>(uri, 1, 0, "message", QString());
     qmlRegisterUncreatableMetaObject(MessageType::staticMetaObject, uri, 1, 0, "MessageType", QString());
     qmlRegisterUncreatableType<KCMTouchpad>(uri, 1, 0, "KCMTouchpad", QString());
-    qmlRegisterUncreatableType<KWinWaylandBackend>(uri, 1, 0, "TouchpadBackend", QString());
+    qmlRegisterUncreatableType<TouchpadBackend>(uri, 1, 0, "TouchpadBackend", QString());
 
-    m_backend = KWinWaylandBackend::implementation();
+    m_backend = TouchpadBackend::implementation();
     if (!m_backend) {
         m_initError = true;
         setSaveLoadMessage(Message::error(i18n("Not able to select appropriate backend")));
@@ -64,14 +76,14 @@ KCMTouchpad::KCMTouchpad(QObject *parent, const KPluginMetaData &data)
     if (m_initError) {
         setSaveLoadMessage(Message::error(m_backend->errorString()));
     } else {
-        connect(m_backend, &KWinWaylandBackend::needsSaveChanged, this, &KCMTouchpad::updateKcmNeedsSave);
-        connect(m_backend, &KWinWaylandBackend::deviceAdded, this, &KCMTouchpad::onDeviceAdded);
-        connect(m_backend, &KWinWaylandBackend::deviceRemoved, this, &KCMTouchpad::onDeviceRemoved);
+        connect(m_backend, &TouchpadBackend::needsSaveChanged, this, &KCMTouchpad::updateKcmNeedsSave);
+        connect(m_backend, &TouchpadBackend::deviceAdded, this, &KCMTouchpad::onDeviceAdded);
+        connect(m_backend, &TouchpadBackend::deviceRemoved, this, &KCMTouchpad::onDeviceRemoved);
     }
     setCurrentDeviceIndex(0);
 }
 
-KWinWaylandBackend *KCMTouchpad::backend() const
+TouchpadBackend *KCMTouchpad::backend() const
 {
     return m_backend;
 }
@@ -90,6 +102,17 @@ void KCMTouchpad::setCurrentDeviceIndex(int index)
         m_currentDeviceIndex = index;
         Q_EMIT currentDeviceIndexChanged();
     }
+}
+
+void KCMTouchpad::kcmInit()
+{
+#if BUILD_KCM_TOUCHPAD_X11
+    TouchpadBackend *backend = TouchpadBackend::implementation();
+    if (backend->getMode() == TouchpadInputBackendMode::XLibinput) {
+        backend->load();
+        backend->save();
+    }
+#endif
 }
 
 void KCMTouchpad::load()

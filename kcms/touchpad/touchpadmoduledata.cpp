@@ -5,13 +5,14 @@
  */
 
 #include "touchpadmoduledata.h"
-#include "kwinwaylandbackend.h"
+
+#include "touchpadbackend.h"
 
 TouchpadModuleData::TouchpadModuleData(QObject *parent)
     : KCModuleData(parent)
 {
-    m_backend = KWinWaylandBackend::implementation();
-    connect(m_backend, &KWinWaylandBackend::inputDevicesChanged, this, &TouchpadModuleData::updateRelevance);
+    m_backend = TouchpadBackend::implementation();
+    connect(m_backend, &TouchpadBackend::inputDevicesChanged, this, &TouchpadModuleData::updateRelevance);
     updateRelevance();
 }
 
