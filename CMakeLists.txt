@@ -37,6 +37,10 @@ include(ECMQmlModule)
 include(ECMConfiguredInstall)
 
 option(BUILD_DOC "Whether to build the documentation" ON)
+option(BUILD_KCM_MOUSE_KWIN_WAYLAND "Build the Mouse KCM's KWin+Wayland backend" ON)
+option(BUILD_KCM_MOUSE_X11 "Build the Mouse KCM's X11 backend" ON)
+option(BUILD_KCM_TOUCHPAD_KWIN_WAYLAND "Build the Touchpad KCM's KWin+Wayland backend" ON)
+option(BUILD_KCM_TOUCHPAD_X11 "Build the Touchpad KCM's X11 backend" ON)
 option(BUILD_KCM_TABLET "Build the Tablet KCM" ON)
 
 find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
@@ -210,7 +214,20 @@ set_package_properties(UDev PROPERTIES
     TYPE OPTIONAL
 )
 
-find_package(XCB REQUIRED COMPONENTS XCB)
+find_package(XCB
+    REQUIRED COMPONENTS
+        XCB SHM IMAGE
+    OPTIONAL_COMPONENTS
+        XKB XINPUT ATOM RECORD
+)
+
+if (BUILD_KCM_TOUCHPAD_X11)
+    find_package(X11_XCB)
+    set_package_properties(X11_XCB PROPERTIES
+        PURPOSE "Required for touchpad KCM (X11 backend) when option BUILD_KCM_TOUCHPAD_X11=ON"
+        TYPE REQUIRED
+    )
+endif()
 
 pkg_check_modules(XKBREGISTRY xkbregistry REQUIRED IMPORTED_TARGET)
 
@@ -253,6 +270,7 @@ add_definitions(
 )
 
 configure_file(config-workspace.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-workspace.h)
+configure_file(config-build-options.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-build-options.h)
 
 plasma_install_package(desktoppackage org.kde.plasma.desktop shells shell)
 
